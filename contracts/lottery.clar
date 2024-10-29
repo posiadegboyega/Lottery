@@ -48,3 +48,17 @@
     (var-get prize-pool)
 )
 
+(define-read-only (get-participant-tickets (participant principal))
+    (default-to
+        { ticket-count: u0 }
+        (map-get? participant-tickets
+            { lottery-id: (var-get current-lottery-id),
+              participant: participant }
+        )
+    )
+)
+
+;; Private functions
+(define-private (random-number (max uint))
+    (mod (get-block-info! time (- block-height u1)) max)
+)
