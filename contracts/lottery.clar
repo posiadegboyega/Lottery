@@ -62,3 +62,44 @@
 (define-private (random-number (max uint))
     (mod (get-block-info! time (- block-height u1)) max)
 )
+
+;; Public functions
+(define-public (start-lottery)
+    (begin
+        (asserts! (is-eq tx-sender contract-owner) err-not-owner)
+        (asserts! (not (var-get lottery-active)) err-lottery-active)
+        (var-set lottery-active true)
+        (var-set current-lottery-id (+ (var-get current-lottery-id) u1))
+        (var-set ticket-counter u0)
+        (var-set prize-pool u0)
+        (ok true)
+    )
+)
+
+(define-public (buy-ticket (number-of-tickets uint))
+    (let (
+        (total-cost (* number-of-tickets ticket-price))
+        (current-id (var-get current-lottery-id))
+        (current-ticket-id (var-get ticket-counter))
+    )
+        (asserts! (var-get lottery-active) err-lottery-inactive)
+        (asserts! (>= (stx-get-balance tx-sender) total-cost) err-insufficient-funds)
+
+        ;; Transfer STX to contract
+        (try! (stx-transfer? total-cost tx-sender (as-contract tx-sender)))
+
+        ;; Update prize pool
+        (var-set prize-pool (+ (var-get prize-pool) total-cost))
+
+        ;; Record tickets
+        (map-set participant-tickets
+            { lottery-id: current-id, participant: tx-sender }
+            { ticket-count: (+ number-of-tickets
+                (get ticket-count (get-participant-tickets tx-sender))) }
+        )
+
+        ;; Create individual ticket entries
+        (var-set ticket-counter (+ current-ticket-id number-of-tickets))
+        (ok true)
+    )
+)
