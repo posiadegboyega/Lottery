@@ -103,3 +103,45 @@
         (ok true)
     )
 )
+
+(define-public (draw-winner)
+    (let (
+        (total-tickets (var-get ticket-counter))
+        (total-prize (var-get prize-pool))
+        (commission (/ (* total-prize commission-rate) u1000))
+        (winner-prize (- total-prize commission))
+    )
+        (asserts! (is-eq tx-sender contract-owner) err-not-owner)
+        (asserts! (var-get lottery-active) err-lottery-inactive)
+        (asserts! (>= total-tickets min-participants) err-min-participants-not-met)
+
+        ;; Select winning ticket
+        (let (
+            (winning-ticket-id (random-number total-tickets))
+            (winner-info (unwrap!
+                (map-get? tickets
+                    { lottery-id: (var-get current-lottery-id),
+                      ticket-id: winning-ticket-id }
+                )
+                err-lottery-inactive))
+        )
+            ;; Transfer prize to winner
+            (try! (as-contract
+                (stx-transfer? winner-prize
+                    tx-sender
+                    (get participant winner-info))))
+
+            ;; Transfer commission to contract owner
+            (try! (as-contract
+                (stx-transfer? commission
+                    tx-sender
+                    contract-owner)))
+
+            ;; End lottery
+            (var-set lottery-active false)
+            (ok { winner: (get participant winner-info),
+                 prize: winner-prize })
+        )
+    )
+)
+
