@@ -25,3 +25,26 @@
     { lottery-id: uint, ticket-id: uint }
     { participant: principal }
 )
+
+(define-map participant-tickets
+    { lottery-id: uint, participant: principal }
+    { ticket-count: uint }
+)
+
+;; Read-only functions
+(define-read-only (get-ticket-price)
+    ticket-price
+)
+
+(define-read-only (get-lottery-status)
+    (var-get lottery-active)
+)
+
+(define-read-only (get-current-lottery-id)
+    (var-get current-lottery-id)
+)
+
+(define-read-only (get-prize-pool)
+    (var-get prize-pool)
+)
+
